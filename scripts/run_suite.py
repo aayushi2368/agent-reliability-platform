@@ -40,7 +40,12 @@ def get_llm(name):
 
         return MockLLMv2()
 
-    raise ValueError("Unknown LLM. Use --llm mock or --llm mockv2.")
+    if name == "broken":
+        from agent.broken_llm import BrokenMockLLM
+
+        return BrokenMockLLM()
+
+    raise ValueError("Unknown LLM. Use --llm mock, mockv2, or broken.")
 
 
 def get_judge(name):
