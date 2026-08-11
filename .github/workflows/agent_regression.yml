@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-agent-suite:
+  run-agent-evaluation:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,10 +24,41 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Generate dataset and task suite
+      - name: Generate dataset
         run: |
           python scripts/generate_data.py
 
-      - name: Run agent evaluation suite
+      - name: Generate task suite
         run: |
-          python scripts/run_suite.py --agent-version ci
+          python scripts/generate_suite_v2.py
+
+      - name: Run stable agent suite
+        run: |
+          python scripts/run_suite.py \
+            --suite tasks/suite_v2.jsonl \
+            --agent-version ci-stable \
+            --llm mockv2 \
+            --judge heuristic
+
+      - name: Run CI quality gate
+        run: |
+          python scripts/ci_check.py \
+            --results reports/ci-stable_results.json \
+            --min-pass-rate 1.0 \
+            --min-judge-score 2.9
+
+      - name: Run repeated flaky check
+        run: |
+          python scripts/run_repeated_suite.py \
+            --suite tasks/suite_v2.jsonl \
+            --agent-version ci-flaky \
+            --llm flaky \
+            --judge heuristic \
+            --runs 2 \
+            --seed 42
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-reports
+          path: reports/
